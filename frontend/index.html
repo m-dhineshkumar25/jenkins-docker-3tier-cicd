@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps CI/CD Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <h1>CloudOps CI/CD Demo</h1>
+
+    <div class="card">
+        <h2>Application Health</h2>
+        <p id="health">Checking...</p>
+    </div>
+
+    <div class="card">
+        <h2>Projects</h2>
+        <div id="projects">Loading...</div>
+    </div>
+</div>
+
+<script>
+async function loadData() {
+    try {
+        const health = await fetch("/api/health");
+        const healthData = await health.json();
+
+        document.getElementById("health").innerText =
+            healthData.status + " | Database: " + healthData.database;
+
+        const response = await fetch("/api/projects");
+        const projects = await response.json();
+
+        document.getElementById("projects").innerHTML =
+            projects.map(p => `
+                <div class="project">
+                    <h3>${p.name}</h3>
+                    <p>${p.description}</p>
+                </div>
+            `).join("");
+    } catch (error) {
+        document.getElementById("health").innerText = "Backend unavailable";
+    }
+}
+
+loadData();
+</script>
+</body>
+</html>

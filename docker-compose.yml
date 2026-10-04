@@ -1,0 +1,60 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudops-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudops-network
+
+  backend:
+    build:
+      context: ./backend
+    image: cloudops-backend:latest
+    container_name: cloudops-backend
+    environment:
+      DB_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudops-network
+
+  frontend:
+    build:
+      context: ./frontend
+    image: cloudops-frontend:latest
+    container_name: cloudops-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cloudops-network
+
+networks:
+  cloudops-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
