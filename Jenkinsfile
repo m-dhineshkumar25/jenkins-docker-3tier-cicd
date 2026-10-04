@@ -58,8 +58,11 @@ pipeline {
             steps {
                 sh '''
                     cp .env.example .env
-                    docker compose down
+
+                    docker compose down --remove-orphans || true
+
                     docker compose up -d --build
+
                     docker compose ps
                 '''
             }
