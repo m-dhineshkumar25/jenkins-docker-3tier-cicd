@@ -1,0 +1,119 @@
+warning: in the working copy of 'Jenkinsfile', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/Jenkinsfile b/Jenkinsfile[m
+[1mindex eb6a013..4f2726c 100644[m
+[1m--- a/Jenkinsfile[m
+[1m+++ b/Jenkinsfile[m
+[36m@@ -1,6 +1,11 @@[m
+ pipeline {[m
+     agent any[m
+ [m
+[32m+[m[32m    environment {[m
+[32m+[m[32m        BACKEND_IMAGE = "cloudops-backend"[m
+[32m+[m[32m        FRONTEND_IMAGE = "cloudops-frontend"[m
+[32m+[m[32m    }[m
+[32m+[m
+     stages {[m
+ [m
+         stage("Checkout") {[m
+[36m@@ -9,45 +14,91 @@[m [mpipeline {[m
+             }[m
+         }[m
+ [m
+[31m-        stage("Build") {[m
+[32m+[m[32m        stage("Test") {[m
+[32m+[m[32m            steps {[m
+[32m+[m[32m                sh '''[m
+[32m+[m[32m                    docker compose config[m
+[32m+[m[32m                '''[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        stage("Build Docker Images") {[m
+[32m+[m[32m            steps {[m
+[32m+[m[32m                sh '''[m
+[32m+[m[32m                    cp .env.example .env[m
+[32m+[m
+[32m+[m[32m                    docker build \[m
+[32m+[m[32m                        -t ${BACKEND_IMAGE}:${BUILD_NUMBER} \[m
+[32m+[m[32m                        ./backend[m
+[32m+[m
+[32m+[m[32m                    docker build \[m
+[32m+[m[32m                        -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} \[m
+[32m+[m[32m                        ./frontend[m
+[32m+[m[32m                '''[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        stage("Trivy Security Scan") {[m
+             steps {[m
+[31m-                sh "docker compose build"[m
+[32m+[m[32m                sh '''[m
+[32m+[m[32m                    trivy image \[m
+[32m+[m[32m                        --severity HIGH,CRITICAL \[m
+[32m+[m[32m                        --exit-code 0 \[m
+[32m+[m[32m                        ${BACKEND_IMAGE}:${BUILD_NUMBER}[m
+[32m+[m
+[32m+[m[32m                    trivy image \[m
+[32m+[m[32m                        --severity HIGH,CRITICAL \[m
+[32m+[m[32m                        --exit-code 0 \[m
+[32m+[m[32m                        ${FRONTEND_IMAGE}:${BUILD_NUMBER}[m
+[32m+[m[32m                '''[m
+             }[m
+         }[m
+ [m
+         stage("Deploy") {[m
+             steps {[m
+[31m-                sh """[m
+[32m+[m[32m                sh '''[m
+                     cp .env.example .env[m
+[31m-                    docker compose up -d[m
+[31m-                """[m
+[32m+[m[32m                    docker compose down[m
+[32m+[m[32m                    docker compose up -d --build[m
+[32m+[m[32m                    docker compose ps[m
+[32m+[m[32m                '''[m
+             }[m
+         }[m
+ [m
+         stage("Health Check") {[m
+             steps {[m
+[31m-                sh """[m
+[31m-                    sleep 15[m
+[32m+[m[32m                sh '''[m
+[32m+[m[32m                    sleep 10[m
+[32m+[m
+                     curl -f http://localhost/api/health[m
+[32m+[m
+[32m+[m[32m                    curl -f http://localhost/api/projects[m
+[32m+[m
+                     docker compose ps[m
+[31m-                """[m
+[32m+[m[32m                '''[m
+             }[m
+         }[m
+ [m
+         stage("Cleanup") {[m
+             steps {[m
+[31m-                sh "docker image prune -f"[m
+[32m+[m[32m                sh '''[m
+[32m+[m[32m                    docker image prune -f[m
+[32m+[m[32m                '''[m
+             }[m
+         }[m
+     }[m
+ [m
+     post {[m
+         success {[m
+[31m-            echo "CI/CD deployment completed successfully."[m
+[32m+[m[32m            echo "CI/CD pipeline completed successfully."[m
+         }[m
+ [m
+         failure {[m
+             echo "CI/CD pipeline failed."[m
+         }[m
+[32m+[m
+[32m+[m[32m        always {[m
+[32m+[m[32m            echo "Pipeline execution completed."[m
+[32m+[m[32m        }[m
+     }[m
+ }[m
